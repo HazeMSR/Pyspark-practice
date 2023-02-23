@@ -15,7 +15,7 @@ docker run -d \
     -p 8081:5432 \
     -e POSTGRES_PASSWORD=mysecretpassword \
     -e POSTGRES_USER=myself \
-    -v /home/ec2-user/Session-4/db:/home/data \
+    -v ./db:/home/data \
     postgres:14-alpine
 ```
 2. Create the role and the db:
@@ -33,10 +33,10 @@ CREATE DATABASE dvdrental;
 exit;
 
 # Unzip the file with the command
-tar xvf /home/data/dvdrental.tar
+tar xvf /tmp/dvdrental.tar
 
 # Import the database
-docker exec -it my-postgres pg_restore -U myself -d dvdrental /home/data/dvdrental.zip -W
+docker exec -it my-postgres pg_restore -U myself -d dvdrental /tmp/dvdrental.zip -W
 
 exit
 ```
@@ -49,7 +49,7 @@ exit
 # Create your jupyter container
 docker run -d \
     --name=my-spark \
-    -v ~/Session-4/db:/home/jovyan/db \
+    -v ./notebook:/home/jovyan/jupyter \
     -p 8080:8888 \
     --shm-size=5g \
     jupyter/pyspark-notebook
@@ -62,7 +62,7 @@ docker exec -u 0 -it my-spark /bin/bash
 cd /usr/local/spark/jars
 
 # Copy you postgres driver to the current directory:
-cp $HOME/work/postgresql-driver.jar ./
+cp /home/jovyan/jupyter/postgresql-driver.jar ./
 
 exit
 
@@ -72,4 +72,4 @@ docker exec -it my-spark /bin/bash
 # Get your Jupyter token
 jupyter server list
 ```
-# Pyspark-practice
+
