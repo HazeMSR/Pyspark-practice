@@ -1,7 +1,11 @@
-# Session-4
 
 ## Configuration
 
+```
+docker-compose up -d
+```
+
+## Notes
 ### Postgres
 
 1. Pull and run a lightweight image of Postgres:
