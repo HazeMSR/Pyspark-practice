@@ -79,7 +79,9 @@ jupyter server list
 
 ![Jupyter1](documentation_images/1.png)
 
-4. First we need to import libraries and create the Spark Session which we'll use for the entire notebook:
+### Database source
+
+4. First we need to import libraries and create the Spark Session which we'll use for the entire notebook (You can execute your code using the "Play button" that is on the top):
 
 ``` Python
 from pyspark.sql import SparkSession
@@ -88,7 +90,7 @@ from pyspark.sql import SparkSession
 spark = SparkSession \
     .builder \
     .appName("SparkApp") \ # Choose a name for your application
-    .config("spark.jars", "postgresql-driver.jar") \ #Use the postgres driver as a config
+    .config("spark.jars", "postgresql-driver.jar") \ # Use the postgres driver as a config
     .getOrCreate() 
 ```
 
@@ -132,6 +134,7 @@ film_df = spark.read \
 
 film_df.show(5)
 ```
+### Parquet file
 
 9. An advantage of Spark it's that we can use different data sources to perform our transformations, in this case we use a [parquet](https://parquet.apache.org/docs/overview/) format.
 
@@ -218,4 +221,129 @@ male2_df.show(truncate=False)
 ```Python
 spark.sql("CREATE TEMPORARY VIEW PERSON2 USING parquet OPTIONS (path \"people2.parquet/gender=F\")")
 spark.sql("SELECT * FROM PERSON2" ).show()
+```
+
+### Pandas dataframe
+
+19. Also we can cast a pandas dataframe into a Spark dataframe.
+
+```Python
+# First we need to import pandas library
+import pandas as pd
+
+# Then we need to create our data to save
+data = [['Scott', 50], ['Jeff', 45], ['Thomas', 54],['Ann',34]] 
+ 
+# Create the pandas DataFrame using our data and naming the columns
+pandas_df = pd.DataFrame(data, columns = ['Name', 'Age']) 
+  
+# And finally let's print the dataframe
+print(pandas_df)
+```
+
+20. In order to use our pandas it's so simple as creating a new dataframe and using our pandas dataframe as parameter.
+
+```Python
+spark_pandas_df = spark.createDataFrame(pandas_df) 
+spark_pandas_df.show()
+```
+21. We can create a custom schema for our dataframe in order to type our values.
+
+```
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+
+my_schema = StructType([ StructField("First Name", StringType(), True)\
+                       ,StructField("Age", IntegerType(), True)])
+```
+
+22. Now we have to create a new dataframe using our previous schema and our pandas dataframe.
+
+```Python
+pandas_schema_df = spark.createDataFrame(pandas_df,schema=my_schema)
+pandas_schema_df.show()
+```
+
+23. Now we can check the difference between using a schema or not.
+
+```Python
+pandas_schema_df.printSchema()
+```
+
+24. By default createDataFrame method intuits the types of the values, but for a precise type it's better to create our own schema.
+
+```Python
+spark_pandas_df.printSchema()
+```
+
+25. An alternative it's to parse our pandas dataframe using Apache Arrow.
+
+```Python
+
+spark.conf.set("spark.sql.execution.arrow.enabled","true")
+arrow_df = spark.createDataFrame(pandas_df) 
+arrow_df.printSchema()
+```
+
+26. Also we can convert a Spark dataframe to a Pandas dataframe.
+
+```Python
+
+# First we need to create the data to use it
+data = [("James","","Smith","36636","M",60000),
+        ("Michael","Rose","","40288","M",70000),
+        ("Robert","","Williams","42114","",400000),
+        ("Maria","Anne","Jones","39192","F",500000),
+        ("Jen","Mary","Brown","","F",0)]
+
+# Then the columns
+columns = ["first_name","middle_name","last_name","dob","gender","salary"]
+
+# Create a new dataframe using the previous data as parameters
+pyspark_df = spark.createDataFrame(data = data, schema = columns)
+pyspark_df.printSchema()
+pyspark_df.show(truncate=False)
+```
+
+27. To do the parsing we only have to execute "toPandas" method.
+
+```Python
+pandasDF = pyspark_df.toPandas()
+print(pandasDF)
+```
+
+28. Also we can use nested schemas in Spark and parse them into Pandas.
+
+```Python
+# Nested structure elements
+from pyspark.sql.types import StructType, StructField, StringType,IntegerType
+
+data_struct = [(("James","","Smith"),"36636","M","3000"), \
+      (("Michael","Rose",""),"40288","M","4000"), \
+      (("Robert","","Williams"),"42114","M","4000"), \
+      (("Maria","Anne","Jones"),"39192","F","4000"), \
+      (("Jen","Mary","Brown"),"","F","-1") \
+]
+
+# Create the nested schema struct
+schema_struct = StructType([
+        StructField('name', StructType([
+             StructField('firstname', StringType(), True),
+             StructField('middlename', StringType(), True),
+             StructField('lastname', StringType(), True)
+             ])),
+          StructField('dob', StringType(), True),
+         StructField('gender', StringType(), True),
+         StructField('salary', StringType(), True)
+         ])
+
+# Create a new Spark dataframe using our nested schema
+nested_df = spark.createDataFrame(data=data_struct, schema = schema_struct)
+nested_df.show()
+```
+
+29. Finally we parse it using the the same method.
+
+```Python
+pandas_df2 = nested_df.toPandas()
+print(pandas_df2)
 ```
